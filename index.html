@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonoChrome Writer</title>
+    <style>
+        :root {
+            --primary-black: #111111;
+            --secondary-black: #222222;
+            --dark-gray: #333333;
+            --medium-gray: #666666;
+            --light-gray: #999999;
+            --off-white: #f5f5f5;
+            --pure-white: #ffffff;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--pure-white);
+            color: var(--primary-black);
+        }
+
+        .header {
+            background: linear-gradient(to right, var(--primary-black), var(--secondary-black));
+            color: var(--pure-white);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--off-white);
+            border-right: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .sidebar.collapsed {
+            width: 50px;
+        }
+
+        .project-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+        }
+
+        .tree-item {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tree-item:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .tree-item.active {
+            background: var(--primary-black);
+            color: var(--pure-white);
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            background: var(--pure-white);
+        }
+
+        .toolbar {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 0.5rem;
+            padding-right: 1rem;
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .editor {
+            flex: 1;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .writing-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notes-area {
+            flex: 1;
+            border-left: 1px solid rgba(0,0,0,0.1);
+            padding-left: 2rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            resize: none;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            background: var(--pure-white);
+            color: var(--primary-black);
+            transition: var(--transition);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-black);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 0.6rem 1.2rem;
+            background: var(--primary-black);
+            color: var(--pure-white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--secondary-black);
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: var(--off-white);
+            color: var(--primary-black);
+        }
+
+        button.secondary:hover {
+            background: var(--light-gray);
+        }
+
+        .status-bar {
+            padding: 1rem;
+            background: var(--off-white);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .word-count {
+            font-size: 0.9rem;
+            color: var(--medium-gray);
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: var(--pure-white);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            padding: 2rem;
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            right: 0;
+        }
+
+        .settings-group {
+            margin-bottom: 2rem;
+        }
+
+        .settings-group h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--dark-gray);
+        }
+
+        .setting-item {
+            margin-bottom: 1rem;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--medium-gray);
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            padding: 0.5rem;
+            background: var(--off-white);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background: var(--primary-black);
+            color: var(--pure-white);
+        }
+
+        body.dark-mode .sidebar {
+            background: var(--secondary-black);
+            border-color: var(--dark-gray);
+        }
+
+        body.dark-mode .tree-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        body.dark-mode .tree-item.active {
+            background: var(--pure-white);
+            color: var(--primary-black);
+        }
+
+        body.dark-mode textarea {
+            background: var(--secondary-black);
+            color: var(--pure-white);
+            border-color: var(--dark-gray);
+        }
+
+        body.dark-mode .status-bar {
+            background: var(--secondary-black);
+            border-color: var(--dark-gray);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MonoChrome Writer</h1>
+        <div class="toolbar-group">
+            <button onclick="saveProject()">Save Project</button>
+            <button onclick="exportProject()">Export</button>
+            <button onclick="toggleSettings()" class="secondary">Settings</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar" id="sidebar">
+            <div class="project-tree">
+                <div class="tree-item active" onclick="selectDocument('chapter1')">
+                    <span>Chapter 1</span>
+                </div>
+                <div class="tree-item" onclick="selectDocument('chapter2')">
+                    <span>Chapter 2</span>
+                </div>
+                <div class="tree-item" onclick="selectDocument('notes')">
+                    <span>Research Notes</span>
+                </div>
+            </div>
+            <div class="toggle-sidebar" onclick="toggleSidebar()">≡</div>
+        </div>
+
+        <div class="content-area">
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button onclick="formatText('bold')">Bold</button>
+                    <button onclick="formatText('italic')">Italic</button>
+                    <button onclick="formatText('heading')">Heading</button>
+                </div>
+                <div class="toolbar-group">
+                    <button onclick="addChapter()">Add Chapter</button>
+                    <button onclick="toggleFullscreen()" class="secondary">Fullscreen</button>
+                </div>
+            </div>
+
+            <div class="editor">
+                <div class="writing-area">
+                    <textarea id="mainEditor" placeholder="Start writing your story here..." oninput="updateWordCount()"></textarea>
+                </div>
+                <div class="notes-area">
+                    <textarea id="notesEditor" placeholder="Add your notes here..."></textarea>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span class="word-count">Words: 0</span>
+                <span class="time">Last saved: Never</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <h2>Settings</h2>
+        <div class="settings-group">
+            <h3>Appearance</h3>
+            <div class="setting-item">
+                <label>Theme</label>
+                <select onchange="updateTheme(this.value)">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>Font Size</label>
+                <input type="number" min="12" max="24" value="16" onchange="updateFontSize(this.value)">
+            </div>
+        </div>
+        <div class="settings-group">
+            <h3>Editor</h3>
+            <div class="setting-item">
+                <label>Line Height</label>
+                <select onchange="updateLineHeight(this.value)">
+                    <option value="1.6">Compact</option>
+                    <option value="1.8" selected>Normal</option>
+                    <option value="2">Relaxed</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="toggleSettings()" class="secondary">Close Settings</button>
+    </div>
+
+    <script>
+        let currentDocument = 'chapter1';
+        let projectData = {
+            chapter1: { content: '', notes: '' },
+            chapter2: { content: '', notes: '' },
+            notes: { content: '', notes: '' }
+        };
+
+        // Enhanced functionality
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function updateTheme(theme) {
+            document.body.classList.toggle('dark-mode', theme === 'dark');
+        }
+
+        function updateFontSize(size) {
+            document.getElementById('mainEditor').style.fontSize = `${size}px`;
+            document.getElementById('notesEditor').style.fontSize = `${size}px`;
+        }
+
+        function updateLineHeight(height) {
+            document.getElementById('mainEditor').style.lineHeight = height;
+            document.getElementById('notesEditor').style.lineHeight = height;
+        }
+
+        function toggleFullscreen() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Previous functions enhanced with timestamps
+        function selectDocument(docId) {
+            saveCurrentContent();
+            document.querySelectorAll('.tree-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.tree-item').classList.add('active');
+            currentDocument = docId;
+            loadDocument(docId);
+        }
+
+        function saveCurrentContent() {
+            projectData[currentDocument] = {
+                content: document.getElementById('mainEditor').value,
+                notes: document.getElementById('notesEditor').value,
+                lastSaved: new Date().toLocaleTimeString()
+            };
+            updateLastSaved();
+        }
+
+        function loadDocument(docId) {
+            const doc = projectData[docId];
+            document.getElementById('mainEditor').value = doc.content || '';
+            document.getElementById('notesEditor').value = doc.notes || '';
+            updateWordCount();
+            updateLastSaved();
+        }
+
+        function updateLastSaved() {
+            const time = projectData[currentDocument].lastSaved || 'Never';
+            document.querySelector('.time').textContent = `Last saved: ${time}`;
+        }
+
+        function updateWordCount() {
+            const text = document.getElementById('mainEditor').value;
+            const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            document.querySelector('.word-count').textContent = `Words: ${wordCount}`;
+        }
+
+        function formatText(style) {
+            const textarea = document.getElementById('mainEditor');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            let formattedText = selectedText;
+            switch(style) {
+                case 'bold':
+                    formattedText = `**${selectedText}**`;
+                    break;
+                case 'italic':
+                    formattedText = `*${selectedText}*`;
+                    break;
+                case 'heading':
+                    formattedText = `\n# ${selectedText}\n`;
+                    break;
+            }
+
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+        }
+
+        function addChapter() {
+            const chapterCount = Object.keys(projectData).filter(key => key.startsWith('chapter')).length;
+            const newChapterId = `chapter${chapterCount + 1}`;
+            
+            projectData[newChapterId] = { content: '', notes: '' };
+            
+            const treeItem = document.createElement('div');
+            treeItem.className = 'tree-item';
+            treeItem.innerHTML
